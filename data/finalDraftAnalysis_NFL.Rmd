@@ -1,0 +1,337 @@
+---
+title: "Predicting 40-Yard Dash Times of NFL Prospects"
+author: "Hans Larson"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r}
+# Set global figure size
+knitr::opts_chunk$set(fig.width=6, fig.height=3.5) 
+```
+
+## Abstract
+
+This data comes from the NFL Combine between the years 2012 and 2017. It contains data from the physical tests that NFL prospects took to catch the eye of possible NFL draft recruiters.My primary goal is to see what predictor variables have the highest correlation with a player's 40-yard-dash time.  The initial predictor variables will be weight (lbs), and physical tests including vertical leap, broad jump, shuttle and 3-cone-drill agility tests, and number of bench reps at 225 pounds. Quarterbacks were excluded from the dataset because of their inconsistent data, and I deleted any players that had N/As for any of the predictor variables. There are 627 observations in this data set.
+
+## Introduction
+There are many factors that come into play for an NFL player's 40 yard dash time. It would be interesting to know which physical tests/attributes play the largerst role in this prediction because of the importance of the 40-yard dash time as an indicator of a player's overall physical ability. I analyzed combine data from 627 NFL players from 2012 to 2017 of all positions. Using multiple linear regression analysis, I examined the effects of 5 different predictor variables in my final model on 40 yard dash, including Weight, BenchReps, Broad Jump, 3 Cone drill, and Position.  
+
+I found that among this set of players, a lower 40 yard dash time is associated with players that have a lower weight, a high vertical leap, a far broad jump, and low 3-cone and shuttle times. A number of the predictor variables were correlated with each other. For example, all the players that had a fast shuttle also had a fast 3-cone drill time. Similarly, players with a high vertical leap also had a long broad jump. These are only 2 of the many correlated predictor variables that were found within the data.I also found 3 significant interaction effects. These included the negative relationship of weight and broad jump, the negative relationship of broad jump and 3 cone drill, and 3-cone drill and position category. In the significant interaction plots, I discovered that the faster, more agile positions' 40-yard dash times are less affected by their three-cone drill times. I also discovered that the longer the broad jump, the less a player's 40-yard dash time is affected by weight. Finally, I discovered that three-cone drill's effect on 40-yard dash is consistent with each broad jump category, except for the farthest broad jumpers, who's 40-yard dash times are less affected by three-cone drill.  
+
+My prediction model predicted 95% of the variables within the upper and lower bounds
+
+## Exploratory Analysis
+
+```{r echo=FALSE}
+#install.packages("corrplot")
+library(corrplot)
+# Read in the data
+
+folder_all = "/Users/hans/Desktop/stats_project/2012-2017All.csv"
+all = read.csv(folder_all,header=T)
+
+
+# Attaching the data makes the variable names, such as Year, accessible in R commands
+
+attach (all)
+
+
+all$pos.cat[Pos=="WR"] = "WR"
+all$pos.cat[Pos=="ILB" | Pos=="OLB"] = "LB"
+all$pos.cat[Pos=="DT" | Pos=="DE"] = "DL"
+all$pos.cat[Pos=="OG" | Pos=="OT"] = "OL"
+all$pos.cat[Pos=="CB" | Pos=="FS" | Pos=="SS"] = "DB"
+all$pos.cat[Pos=="FB" | Pos=="TE"] = "FBTE"
+all$pos.cat[Pos=="RB"] = "RB"
+
+detach(all)
+attach(all)
+
+#boxplots
+hist(BenchReps)
+boxplot(BenchReps, main="Bench", horizontal = T)
+hist(X40YD)
+boxplot(X40YD, main="40", horizontal = T)
+hist(Vertical)
+boxplot(Vertical, main="Vertical",horizontal = T)
+hist(Broad.Jump)
+boxplot(Broad.Jump, main="Broad Jump", horizontal = T)
+hist(X3Cone)
+boxplot(X3Cone, main="3 Cone Drill", horizontal = T)
+hist(Shuttle)
+boxplot(Shuttle, main="Shuttle", horizontal = T)
+
+
+
+
+
+```
+After analyzing histograms of our x variables, I came to the conclusion that the variables are normaly distributed and do not have any extreme skewness. Any skewness observed is due to the fact that I have more fast players like D-backs in the data, and less slow players like linemen, because D-backs were more likely to have data for all of the tests than linemen. These variables do not require any transformations.
+
+#Categorical Data
+I have no categorical variables in the scatterplot matrix, but I now know that positions could be a categorical variable. I will add in positions in groups (i.e. CBs, FSs, and SSs will be put in the group DBs).
+
+#Scatterplot Matrix
+```{r fig.height = 8, fig.width = 8}
+all$pos.cat=as.factor(pos.cat)
+pairs (all[,c(7:13)], main="All Data", col=as.factor(pos.cat))
+
+
+```
+##All positions Scatterplot matrix analysis
+From this scatterplot matrix, it is clear that when looking at all positions, most of the variables have a strong linear correlation with each other.  The variables that do not have strong linear correlation appear to be any variable that correlates to Bench Reps, with the exception of weight. This is not entirely surprising, but it is somewhat unexpected.  Variables that have the strongest linear correlation appear to be 3 cone drill and shuttle, and  40 yard dash and Broad Jump.  Weight and 40 yard dash are also very correlated, which is expected, but it is not a linear correlation, although there is constant variance.  Position groups also have very distinct locations in the scatterplots.
+
+Black = DB, Red = DL, Green = FBTE, Blue = LB, LightBlue = OL, Purple = RB, Yellow = WR 
+##Box Plot by Position
+```{r}
+plot(as.factor(pos.cat), X40YD)
+```
+Here we can clearly see the quartiles of each position's 40-yard dash time.
+
+```{r}
+#First-order model for complete data set
+fit1 = lm(X40YD ~ Wt + Vertical + BenchReps + Broad.Jump + X3Cone + Shuttle + pos.cat)
+summary(fit1)
+```
+
+#Correlation Plot
+```{r}
+summfit1 = summary(fit1, correlation = T)
+corrplot (summfit1$correlation, method = "number", number.cex=0.6, main="All Data")
+```
+
+#summary, anova, and corrplot analysis for all positions
+From the summary and the correlation plot of the data, it can be reasonably concluded that there are many significant predictors, with weight having the most correlation with other predictor variables.  Shuttle does not appear to be very significant, which is unexpected, but it is understandable because it is a very short test that has a small range of values. R^2 is 0.8925, Adjusted R^2 is 0.8904
+
+#First order model residual Analysis
+```{r fig.height = 8, fig.width = 8}
+#add in color for position
+par (mfrow=c(2,2))
+plot(fit1, which = 1:3)
+boxplot(fit1$residuals,ylab="All Data")
+```
+From the residuals vs. fitted plot it can be observed that the data has constant variance. From the normal Q-Q plot it can be seen that the data is also normally distributed because all of the residuals fall roughly on the line. I did not need to transform the response.  
+
+There also appears to be two groups of data that have faster and slower 40-yard dash times, with more data points being in the faster cluster.  again, this is due to the fact that we have more fast players in this dataset than slow.
+
+
+#Backward Elimination Method - Manual
+Initally I considered taking out bench reps from the model because it appeared to have the least correlation with 40 yard dash when looking at the scatter plot matrix. However, after analysis of the summary of fit1, bench reps proved to be a significant predictor. Instead I chose to take out vertical in our next model, fit2, becuase it is the least significant of all the predictor variables.
+
+```{r}
+fit2 = lm(X40YD ~ Wt  + BenchReps + Broad.Jump + X3Cone + Shuttle + pos.cat)
+summary(fit2)
+```
+Vertical did not appear to change R-squared by anything significant at all. Of the quantitative variables, Weight, Bench Reps, Broad Jump, and 3-cone drill are very significant. Of the position categorical variables, wide receivers appear to be the only significant predictor of 40-yard dash time.  Residual standard error appears to be very minimal.
+
+Wide receivers and running backs are the only significantly faster positions than defensive backs, while offensive line is the most significantly slower position.  Bench reps and broad jump both cause a player to be faster as they increase, while weight, 3-cone drill, and shuttle
+#First step model Analysis
+```{r}
+step1=step(fit1, direction = "both")
+```
+Using the step function, it recommeneded I take out vertical and shuttle.
+#Best subset model
+```{r}
+fit3 = lm(X40YD ~ Wt + BenchReps + Broad.Jump + X3Cone + pos.cat)
+summary(fit3)
+```
+The estimates in my summary of  fit3 tell me that an increase in weight and a slower 3-cone drill time will result in a slower 40-yard dash time, which is expected.  A longer broad jump results in a faster dash time, which is also expected.  However, an increase in bench reps results in a faster 40-yard dash time, which is unexpected.  This could be a symptom of collinearity, or could also show that this bench test could be more of a test of a player's endurance, rather than his strength.  Upon looking at the bench reps of players in the dataset, however, it appears that in many cases, lower bench reps results in faster 40-yard dash times, and vice versa.  This must be an issue of collinearity.  Weight, bench reps, broad jump, and three cone drill are all very significant
+
+When looking at positions, it appears that fullbacks/tight ends and linebackers are faster than defensive backs, which is unexpected, but not very significant.  Running backs and wide receivers are both faster than defensive backs, with wide receivers being the most significant.  Offensive and defensive linemen are expectedly slower than defensive backs.
+
+R-squared and adjusted R-squared did not have significant changes.
+
+#Residual Analysis on Best Subsets Model
+
+```{r fig.height = 8, fig.width = 8}
+par (mfrow=c(2,2))
+plot(fit3, which = 1:3)
+boxplot(fit1$residuals,ylab="All Data")
+```
+There still appears to be constant variance and normal distribution of values. The two groups of fast and slow players are still very distinct.
+#Interaction Effects
+```{r}
+fit4 = lm(X40YD ~ (Wt + BenchReps + Broad.Jump + X3Cone + pos.cat)^2)
+summary(fit4)
+```
+When interaction effects were added, we can see that not many of them were significant, except for almost anything related to the FBTE position.  Weight and position category were very significant, meaning that weight may show up in our final model.  
+
+Along with our our five significant predictors, we will now use step to create our final model with significant interaction effects added.
+
+# Final Model
+
+## Residual Analysis
+```{r}
+#We will use step4 for our final model
+step4=step(fit4, direction = "both")
+
+```
+The stepwise procedure added three significant interactions to our model: Weight and Broad Jump, Broad Jump and 3-cone drill, and 3-cone drill and position category.
+
+Broad jump and 3-cone drill appear to be the most significant interactions, which will be interesting to visualize with a scatterplot later.
+
+```{r}
+summary(step4)
+```
+## Summary of final model
+Of the interaction effects, weight x broad jump appears to be the most significant, while 3-cone drill x position category has some significant interactions, including defensive line, and fullbacks and tight ends. I will use this model because of its interesting interaction plots that will be analyzed later.  
+
+The estimates of the original predictor variables appear to have been affected by the addition of interactions, but we can see that the interaction effect of weight and broad jump has a significant impact on 40-yard dash time, as well as 3-cone drill x FBTE and DL.
+
+## Comparing Adjusted R^2 values
+
+```{r}
+cbind.data.frame (Model=c("Original Model", "Manual Elim", "Stepwise Original", "Stepwise Interactions"),
+                  Adj.R2 = c(summary (fit1)$adj.r.squared,
+                             summary (fit2)$adj.r.squared,
+                             summary (fit3)$adj.r.squared,
+                             summary (step4)$adj.r.squared))
+
+```
+It appears that running the stepwise procedure on our original stepwise function with added interaction effects increased the adjusted R^2 significantly compared to the other procedures.
+
+## Residual Analysis of Final Model
+```{r}
+plot(step4)
+```
+The residuals appear to be normal, with equal variance and no obvious outliers. The Q-Q plot looks normal, and there appears to be equal and constant variance in our scale-location plot. The cutoff for cook's distance does not even show in our window, indicating that their are no highly influential cook's values.
+
+
+## Hat values
+```{r}
+hatval = hatvalues(step4)
+plot(hatval)
+```
+There are no obvious outliers to consider removing here.
+
+## DFFITS
+```{r}
+dffs = dffits(step4)
+plot(dffs)
+
+cutoff = 2*(sqrt(step4$rank/ (step4$rank + step4$df.residual)))
+abline(cutoff, 0, lty=2)
+abline(-cutoff, 0, lty=2)
+
+```
+From the dffits plot, there are a few values that are over the cutoff, indicating that these values may be influencing our data.  However, we will check to see if these influential values are significant enough to be harmful to the data with a pairs function containing red points that indicate points above the cutoff.
+
+```{r}
+pairs(all[,c(7, 10:12)], col=ifelse(abs(dffs)>cutoff, 2, 1))
+```
+The points above the cutoff (highlighted in red) don't appear to be outside of the clusters of data, meaning that there are no highly influential values.
+
+## Variance Inflation Factors
+```{r}
+
+library(car)
+vif(step4)
+```
+
+
+Although the VIF values are mostly above 10 and were improved by performing a k=log(n), it took away two of our interaction effects from our final model. We observed some very interesting interaction plots from our unlogged step4 model that we will observe later, so I decided to keep this model, although it contains relatively high VIF values.
+
+#Plot of 40-yard dash vs. 3-cone drill, fitted with an abline for each position
+
+```{r fig.height = 8, fig.width = 8}
+plot(X40YD ~ X3Cone, col = as.factor(pos.cat))
+abline(lm(X40YD[pos.cat=="DB"] ~ X3Cone[pos.cat=="DB"]),col=1)
+abline(lm(X40YD[pos.cat=="DL"] ~ X3Cone[pos.cat=="DL"]),col=2)
+abline(lm(X40YD[pos.cat=="FBTE"] ~ X3Cone[pos.cat=="FBTE"]),col=3)
+abline(lm(X40YD[pos.cat=="LB"] ~ X3Cone[pos.cat=="LB"]),col=4)
+abline(lm(X40YD[pos.cat=="OL"] ~ X3Cone[pos.cat=="OL"]),col=5)
+abline(lm(X40YD[pos.cat=="RB"] ~ X3Cone[pos.cat=="RB"]),col=6)
+abline(lm(X40YD[pos.cat=="WR"] ~ X3Cone[pos.cat=="WR"]),col=7)
+poscats = unique(pos.cat)
+legend(6.5, 5.69, poscats, lty = rep(1,7), col=as.factor(poscats))
+
+
+
+
+```
+From this plot, it is clear that the 40-yard dash times of the faster player positions (DBs, RBs, WRs, LBs) were not affected very much by three-cone drill time.  However, for the larger, slower players (FBs, TEs, OL, DL), their 40-yard dash times were much more affected by three-cone drill.
+
+#Compare Weight and 40-Yard Dash by Broad Jump Cluster
+```{r fig.height = 8, fig.width = 8}
+#categorize broad.jump
+BJsum = summary(Broad.Jump)
+all$BJ.cat = "BJ1"
+all$BJ.cat[Broad.Jump > BJsum[2]] = "BJ2"
+all$BJ.cat[Broad.Jump > BJsum[3]] = "BJ3"
+all$BJ.cat[Broad.Jump > BJsum[5]] = "BJ4"
+all$BJ.cat[Broad.Jump > BJsum[6]] = "BJ5"
+
+plot(X40YD ~ Wt, col = as.factor(all$BJ.cat))
+abline(lm(X40YD[all$BJ.cat=="BJ1"] ~ Wt[all$BJ.cat=="BJ1"]),col=1)
+abline(lm(X40YD[all$BJ.cat=="BJ2"] ~ Wt[all$BJ.cat=="BJ2"]),col=2)
+abline(lm(X40YD[all$BJ.cat=="BJ3"] ~ Wt[all$BJ.cat=="BJ3"]),col=3)
+abline(lm(X40YD[all$BJ.cat=="BJ4"] ~ Wt[all$BJ.cat=="BJ4"]),col=4)
+
+BJcats = unique(all$BJ.cat)
+legend(170, 5.69, BJcats, lty = rep(1,7), col=as.factor(BJcats))
+
+#detach(all)
+#attach(all)
+
+#Make scatterplot with Broad Jump and ablines
+
+```
+To make this plot, I first had to categorize the broad jump values into categories.  I categorized them into their four quartiles.  From this plot, we see four distinct slopes for each cluster. The black points, the shortest broad jumps' 40-yard dash times are the most effected by weight, and as broad jump gets longer, the player's 40-yard dash is less effected by their weight.
+
+#Compare 3-Cone Drill and 40-Yard Dash by Broad Jump Cluster
+
+
+```{r fig.height = 8, fig.width = 8}
+plot(X40YD ~ X3Cone, col = as.factor(all$BJ.cat))
+abline(lm(X40YD[all$BJ.cat=="BJ1"] ~ X3Cone[all$BJ.cat=="BJ1"]),col=1)
+abline(lm(X40YD[all$BJ.cat=="BJ2"] ~ X3Cone[all$BJ.cat=="BJ2"]),col=2)
+abline(lm(X40YD[all$BJ.cat=="BJ3"] ~ X3Cone[all$BJ.cat=="BJ3"]),col=3)
+abline(lm(X40YD[all$BJ.cat=="BJ4"] ~ X3Cone[all$BJ.cat=="BJ4"]),col=4)
+
+#BJcats = unique(all$BJ.cat)
+legend(6.5, 5.69, BJcats, lty = rep(1,7), col=as.factor(BJcats))
+
+detach(all)
+attach(all)
+```
+Here we can see again that the shortest broad jumps have the longest 40-yard dash times. All broad jump groups' 40-yard dash times seem to be affected about the same by 3-cone drill except for the longest broad jumps which is interesting.
+
+## Final Model Predictions
+```{r}
+
+pred4 = predict(step4, interval="prediction")
+#names(pred4)=c("fit", "lwr", "upr")
+all$fit = pred4[,1]
+all$lwr = pred4[,2]
+all$upr = pred4[,3]
+
+all[c(46,223,231,289,393,369), c(3, 7, 8, 19:21, 9:13, 17)]
+
+mean(all$lwr <= all$X40YD & all$X40YD <= all$upr)
+```
+From these predictions, it is clear that I was as successful as expected, with a 95% confidence level.  It appears that as 40-yard dash gets slower, it is easier to predict.
+
+# Conclusion
+For NFL prospects between 2012 and 2017, I have found that:
+
+1.  When I cleaned the data, there was several more fast and agile players than slow players because of the way I cleaned the data.  In the future, I should try to use an equal amount of players in each position category.
+
+2.  The data was very normally distributed, which was expected, because tge variables were based on physical tests.  These typically have a lot of observations in the middle, with some high, and some low, but never have very high outliers.  
+
+3.  Any skew observed was due to the fact that the data had more fast players than slow.
+
+4.  The initial predictor variables were weight, vertical jump, broad jump, shuttle, three-cone drill, and bench.
+
+5.  I decided to add in the categorical variables "position categories", which eventually increased the r-squared of our model.
+
+6.  Adding interaction effects increased the r-squared the most (increased from originally .8904 to .8975) and gave us some very interesting interaction plots. 
+
+7.  The final model, after many methods of predictor variable elimination, boiled down to these most signicant predictors: weight, bench reps, broad jump, three-cone drill, and position category.  Using stepwise regression on our interactions added three interaction effects to our final model: Weight x broad jump, broad jump x three-cone drill, and three-cone drill x position category.
+
+8.  Average 40-yard dash time is faster with faster three-cone and shuttle drills, higher vertical, and longer broad jump.  Bench reps also causes 40-yard dash time to become faster, but we determined that this may be a result of collinearity.  40-yard dash time becomes slower with higher weight, which is expected.
+
+9.  In the interaction plots, I discovered that the faster, more agile positions' 40-yard dash times are less affected by their three-cone drill times.  I also discovered that the longer the broad jump, the less a player's 40-yard dash time is affected by weight. Finally, I discovered that three-cone drill's effect on 40-yard dash is consistent with each broad jump category, except for the farthest broad jumpers, who's 40-yard dash times are less affected by three-cone drill.
+
+10.  Example prediction intervals predicted 95% correct, and appeared to become more accurate as the 40-yard dash time got slower.
