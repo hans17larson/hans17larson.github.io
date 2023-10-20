@@ -2600,7 +2600,7 @@ input, select, textarea {
 		}
 
 		.image.left, .image.right {
-			max-width: 40%;
+			max-width: 45%;
 		}
 
 			.image.left img, .image.right img {
@@ -2609,14 +2609,14 @@ input, select, textarea {
 
 		.image.left {
 			float: left;
-			margin: 0 2rem 2rem 0;
-			top: 0.75rem;
+			
+			top: 0.25rem;
 		}
 
 		.image.right {
 			float: right;
-			margin: 0 0 2rem 2rem;
-			top: 0.75rem;
+			
+			top: 0.25rem;
 		}
 
 		.image.fit {
@@ -3255,10 +3255,10 @@ input, select, textarea {
 			-webkit-transition: opacity 1s ease-in-out;
 			-ms-transition: opacity 1s ease-in-out;
 			transition: opacity 1s ease-in-out;
-			-moz-transition-delay: 0.75s;
-			-webkit-transition-delay: 0.75s;
-			-ms-transition-delay: 0.75s;
-			transition-delay: 0.75s;
+			-moz-transition-delay: 0.25s;
+			-webkit-transition-delay: 0.25s;
+			-ms-transition-delay: 0.25s;
+			transition-delay: 0.25s;
 			background: #1e252d;
 			content: '';
 			display: block;
